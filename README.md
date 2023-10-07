@@ -1,3 +1,3 @@
 
-Some homemade shiny apps for exploratory data analysis.
+Some shiny apps for exploratory data analysis.
 
