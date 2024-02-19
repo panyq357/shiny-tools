@@ -1,24 +1,31 @@
 library(readxl)
+library(readr)
 library(clusterProfiler)
 library(shiny)
 
 config = list(
     title = "gene_set_analysis_os.R",
-    oryzabase_ontologies = "/home/panyq/Tools/oryzabase-ontologies/oryzabase-ontologies-2023-05-27.xlsx"
+    oryzabase_ontologies = "/home/panyq/Tools/onto-scripts/results/oryzabase-ontologies.xlsx"
 )
 
-enricher_os = function(gene, universe, onto) {
-    enrich_result = enricher(
-        gene=gene,
-        universe=universe,
-        TERM2GENE=onto[c("OntoID", "GeneID")],
-        TERM2NAME=onto[c("OntoID", "Description")],
+sheets <- excel_sheets(config$oryzabase_ontologies)
+onto_list <- lapply(
+    setNames(sheets, sheets),
+    function(x) read_excel(config$oryzabase_ontologies, sheet=x)
+)
+
+enricher_os <- function(gene, universe, onto_name) {
+    res <- enricher(
+        gene = gene,
+        universe = universe,
+        TERM2GENE = onto_list[[onto_name]][c("OntoID", "GeneID")],
+        TERM2NAME = onto_list[[onto_name]][c("OntoID", "Description")],
         pvalueCutoff = 1,
         qvalueCutoff = 1
     )
-    out = list(
-        dotplot = dotplot(enrich_result),
-        table = as.data.frame(enrich_result)
+    out <- list(
+        dotplot = dotplot(res),
+        table = as.data.frame(res)
     )
     return(out)
 }
@@ -30,28 +37,36 @@ ui <- fluidPage(
         column(width = 2, selectInput("onto_name", label = "Ontology", choices = excel_sheets(config$oryzabase_ontologies)))
     ),
     fluidRow(
-        column(width = 2, textAreaInput("enrich_gene", label = "Gene")),
-        column(width = 2, textAreaInput("enrich_universe", label = "Universe")),
-        column(width = 2,
-            fluidRow(actionButton("enrich_go", label = "Go")),
-            fluidRow(downloadButton("enrich_download", label = "Download Annotation"))
-        ),
-        column(width = 4, plotOutput("enrich_dotplot")),
+        column(width = 3, textAreaInput("gene", label = "Gene")),
+        column(width = 3, textAreaInput("universe", label = "Universe")),
+        column(width = 1, fluidRow(actionButton("go", label = "Go"))),
+        column(width = 1, fluidRow(downloadButton("download", label = "Download")))
     ),
     fluidRow(
-        column(width = 11, dataTableOutput("temp"))
+        column(width = 8, plotOutput("dotplot")),
     )
 )
 
 server <- function(input, output, session) {
-    onto <- eventReactive(input$enrich_go, {
-        read_excel(config$oryzabase_ontologies, sheet=input$onto_name)
+    res <- eventReactive(input$go, {
+        gene <- strsplit(input$gene, "\n")[[1]]
+        if (nchar(input$universe) > 0) {
+            universe <- strsplit(input$universe, "\n")[[1]]
+        } else {
+            universe <- NULL
+        }
+        return(enricher_os(gene, universe, input$onto_name))
     })
+    output$dotplot = renderPlot(res()$dotplot)
 
-    output$temp = renderDataTable({
-        onto()
-    })
-    output$enrich_dotplot = renderPlot(plot(iris))
+    output$download <- downloadHandler(
+        filename = function() {
+            sprintf("enrich_res.%s.csv", input$onto_name)
+        },
+        content = function(file) {
+            write_excel_csv(res()$table, file)
+        }
+    )
 }
 
 shinyApp(ui, server)

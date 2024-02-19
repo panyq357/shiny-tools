@@ -9,7 +9,7 @@ library(Gviz)
 ## - snp info hover
 ## - 
 
-source("gwas_viewer_prep.R")
+source("gwas_viewer_prep_3k.R")
 
 plot_manhattan = function(result_df) {
     manhattan <- ggplot(result_df) +

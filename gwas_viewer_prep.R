@@ -1,12 +1,12 @@
 library(GenomicFeatures)
 
 # Prepare txdb for gene annotation track.
-gene_gr <- rtracklayer::import("/home/panyq/Tools/index-scripts/os/rap-db/2023-10-10/gtf/os.rap-db.make.gtf")
+gene_gr <- rtracklayer::import("/home/panyq/Tools/index-scripts/os/rap-db/2023-10-25/gtf/os.rap-db.make.gtf")
 seqlevels(gene_gr) <- sub("chr[0]*", "", seqlevels(gene_gr))
 txdb <- makeTxDbFromGRanges(gene_gr)
 
 # Prepare gene annotation data.frame.
-gene_anno <- readr::read_tsv("/home/panyq/Tools/index-scripts/os/rap-db/2023-10-10/rawdata/IRGSP-1.0_representative_annotation_2023-09-07.tsv.gz")
+gene_anno <- readr::read_tsv("/home/panyq/Tools/index-scripts/os/rap-db/2023-10-25/rawdata/IRGSP-1.0_representative_annotation_2023-09-07.tsv.gz")
 gene_anno <- gene_anno[c("Locus_ID", "Description", "Oryzabase Gene Symbol Synonym(s)")]
 gene_anno <- gene_anno[!duplicated(gene_anno$Locus_ID),]
 
